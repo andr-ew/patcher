@@ -66,7 +66,7 @@ function patcher.get_destination_plus_param(dest_id, param_id, paramset)
         return util.round(util.clamp(pv + dv, 1, #param.options))
     elseif param.t == paramset.tBINARY and (
         param.behavior == 'momentary'
-        or param.behavior = 'toggle'
+        or param.behavior == 'toggle'
     ) then
         return math.floor(util.clamp(pv + dv, 0, 1))
     elseif 
