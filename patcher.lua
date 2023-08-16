@@ -78,9 +78,7 @@ function patcher.get_destination_plus_param(dest_id, param_id, paramset)
 end
 
 function patcher.add_assginment_params(action)
-    print('adding assignments')
     for _,dest_id in ipairs(destinations) do
-        print('add assignment '..dest_id)
         params:add{
             name = dest_id, id = pfix_mod_source..dest_id, 
             type = 'option', options = sources, default = 1,
