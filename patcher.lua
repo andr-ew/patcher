@@ -16,7 +16,7 @@ function patcher.add_source(src_id, default)
 end
 
 function patcher.add_destination(dest_id, action)
-    table.insert(destinations, src_id)
+    table.insert(destinations, dest_id)
     actions[dest_id] = action or function() end 
 end
 
@@ -50,7 +50,7 @@ function patcher.destination_poll_for_threshold_crossing(dest_id, threshold)
 end
 
 function patcher.get_destination_plus_param(dest_id, param_id, paramset)
-    dest_id = dest_id or param_id
+    param_id = param_id or dest_id
     paramset = paramset or params
 
     local param = paramset:lookup_param(param_id)
@@ -78,7 +78,9 @@ function patcher.get_destination_plus_param(dest_id, param_id, paramset)
 end
 
 function patcher.add_assginment_params(action)
+    print('adding assignments')
     for _,dest_id in ipairs(destinations) do
+        print('add assignment '..dest_id)
         params:add{
             name = dest_id, id = pfix_mod_source..dest_id, 
             type = 'option', options = sources, default = 1,
