@@ -14,12 +14,13 @@ function Patcher.enc.destination(_comp, p)
 end
 
 function Patcher.grid.destination(_comp, args)
+    local args = args or {}
     local patcher = args.patcher or patcher
     local levels = args.levels or { 4, 15 }
 
     return function(dest_id, active_src_id, props)
         if active_src_id and (active_src_id ~= 'none') and crops.device == 'grid' then 
-            local patched = patcher.get_assignment(dest_id) ~= 'none'
+            local patched = patcher.get_assignment(dest_id) == active_src_id
 
             if props.size then
                 if crops.mode == 'input' then
@@ -28,14 +29,16 @@ function Patcher.grid.destination(_comp, args)
 
                     if n and z>0 then 
                         if patched then
-                            patcher.set_assignment(active_src_id, dest_id)
-                        else
                             patcher.set_assignment('none', dest_id)
+                        else
+                            patcher.set_assignment(active_src_id, dest_id)
                         end
                     end
                 else
-                    props.levels[1] = patched and levels[1] or 0
-                    props.levels[2] = levels[2]
+                    props.levels = {
+                        patched and levels[1] or 0,
+                        levels[2]
+                    }
 
                     _comp(props)
                 end
@@ -45,9 +48,9 @@ function Patcher.grid.destination(_comp, args)
 
                     if x == props.x and y == props.y and z>0 then
                         if patched then
-                            patcher.set_assignment(active_src_id, dest_id)
-                        else
                             patcher.set_assignment('none', dest_id)
+                        else
+                            patcher.set_assignment(active_src_id, dest_id)
                         end
                     end
                 else

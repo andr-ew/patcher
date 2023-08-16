@@ -90,7 +90,7 @@ function patcher.set_assignment(src_id, dest_id)
     params:set(pfix_mod_source..dest_id, tab.key(sources, src_id))
 end
 function patcher.get_assignment(dest_id)
-    return params:get(pfix_mod_source..dest_id)
+    return sources[params:get(pfix_mod_source..dest_id)]
 end
 
 return patcher
