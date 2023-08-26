@@ -65,4 +65,50 @@ function Patcher.grid.destination(_comp, args)
     end
 end
 
+function Patcher.arc.destination(_comp, args)
+    local args = args or {}
+    local patcher = args.patcher or patcher
+    local levels = args.levels or { 0, 4 }
+
+    local remainder = 0.0
+
+    return function(dest_id, active_src_id, props)
+        if active_src_id and (active_src_id ~= 'none') and crops.device == 'arc' then 
+            local patched = patcher.get_assignment(dest_id) == active_src_id
+
+            if crops.mode == 'input' then
+                local n, d = table.unpack(crops.args)
+
+                if n == props.n then
+                    local old = (patched and 1 or 0) + remainder
+                    local new = old + (d * (props.sensitivity or 1/4))
+                    local int, frac = math.modf(new)
+
+                    if int >= 1 then
+                        patcher.set_assignment(active_src_id, dest_id)
+                    else
+                        patcher.set_assignment('none', dest_id)
+                    end
+
+                    remainder = frac
+                end
+            elseif crops.mode == 'redraw' then
+                do
+                    local a = crops.handler
+
+                    for x = 1,64 do
+                        a:led(props.n, x, levels[patched and 2 or 1])
+                    end
+                end
+
+                props.levels = { 0, props.levels[2] }
+
+                _comp(props)
+            end
+        else
+            _comp(props)
+        end
+    end
+end
+
 return Patcher
