@@ -14,6 +14,7 @@ function Patcher.enc.destination(_comp, p)
 end
 
 function Patcher.grid.destination(_comp, args)
+    local args = args or {}
     local patcher = args.patcher or patcher
     local levels = args.levels or { 4, 15 }
 
