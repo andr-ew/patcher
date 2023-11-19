@@ -6,10 +6,17 @@ local Patcher = {
     arc = {},
 }
 
-function Patcher.enc.destination(_comp, p)
+function Patcher.enc.destination(_comp, args)
     local patcher = p or patcher
+    local args = args or {}
+    local patcher = args.patcher or patcher
+    -- local levels = args.levels or { 0, 4 }
 
-    return function(dest_id, is_patching, props)
+    return function(dest_id, active_src_id, props)
+        if active_src_id and (active_src_id ~= 'none') and crops.device == 'arc' then 
+        else
+            _comp(props)
+        end
     end
 end
 
