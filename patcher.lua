@@ -3,6 +3,7 @@ local values = { none = 0 }
 
 local destinations = {}
 local actions = {}
+local types = {}
 
 local pfix_mod_source = 'mod_source_'
 
@@ -15,17 +16,40 @@ function patcher.add_source(src_id, default)
     values[src_id] = default or 0
 end
 
-function patcher.add_destination(dest_id, action)
+function patcher.add_source_and_param(args)
+    params:add(args)
+    
+    local typ
+    if args.type == "number" then typ = 'integer'
+    elseif args.type == "option" then typ = 'integer'
+    elseif args.type == "control" then typ = 'decimal'
+    elseif args.type == "trigger" then typ = 'trigger'
+    elseif args.type == "binary" then
+        if args.behavior == "trigger" then typ = 'trigger'
+        else typ = 'integer' end
+    end
+
+    patcher.add_destination(typ, args.id, args.action)
+end
+
+function patcher.add_destination(typ, dest_id, action)
     table.insert(destinations, dest_id)
+    types[dest_id] = typ
     actions[dest_id] = action or function() end 
 end
 
-function patcher.set_source(src_id, value, ...)
+function patcher.set_source(src_id, value, trigger_threshold, ...)
+    local last = values[src_id]
     values[src_id] = value
     
     for _,dest_id in ipairs(destinations) do
         if sources[params:get(pfix_mod_source..dest_id)] == src_id then 
-            actions[dest_id](value, ...)
+            if types[dest_id] == 'decimal' then
+                actions[dest_id](value, ...)
+            elseif types[dest_id] == 'integer' and math.floor(last) ~= math.floor(value) then
+                actions[dest_id](math.floor(value), ...)
+            elseif types[dest_id] == 'trigger' then
+            end
         end
     end
 end
