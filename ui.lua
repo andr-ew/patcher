@@ -138,10 +138,7 @@ function Patcher.grid.destination(_comp, args)
                         end
                     end
                 else
-                    props.levels = {
-                        patched and levels[1] or 0,
-                        levels[2]
-                    }
+                    if props.levels then props.levels[1] = patched and levels[1] or 0 end
 
                     _comp(props)
                 end
@@ -184,7 +181,7 @@ function Patcher.arc.destination(_comp, args)
 
                 if n == props.n then
                     local old = (patched and 1 or 0) + remainder
-                    local new = old + (d * (props.sensitivity or 1/4))
+                    local new = old + (d * (args.sensitivity or 1/4))
                     local int, frac = math.modf(new)
 
                     if int >= 1 then
@@ -199,12 +196,12 @@ function Patcher.arc.destination(_comp, args)
                 do
                     local a = crops.handler
 
-                    for x = 1,64 do
-                        a:led(props.n, x, levels[patched and 2 or 1])
-                    end
+                    if patched then for x = 1,64 do
+                        a:led(props.n, x, levels[2])
+                    end end
                 end
 
-                props.levels = { 0, props.levels[2] }
+                if props.levels then props.levels[1] = 0 end
 
                 _comp(props)
             end
