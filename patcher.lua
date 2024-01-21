@@ -42,9 +42,9 @@ function patcher.add_destination(args)
     local typ = args.type
     local behavior = args.behavior
     local dest_id = args.id
-    local default = args.default or 0
     local action = args.action
     local spec = args.controlspec or cs.new()
+    local default = args.controlspec and args.controlspec.default or args.default or 0
     local min = args.min
     local max = args.max
     local option_count = #(args.options or {})
@@ -52,7 +52,7 @@ function patcher.add_destination(args)
     table.insert(destinations, dest_id)
     dest_assignments[dest_id] = 'none'
     dest_types[dest_id] = typ
-    dest_values[dest_id] = default or 0
+    dest_values[dest_id] = default
         
     if typ == 'control' then
         dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
@@ -114,6 +114,9 @@ function patcher.add_destination(args)
 end
 
 function patcher.add_destination_and_param(args)
+    local param_action = patcher.add_destination(args)
+    args.action = param_action
+    params:add(args)
 end
 
 function patcher.add_assignment_params(action)
