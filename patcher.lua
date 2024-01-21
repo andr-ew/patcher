@@ -2,20 +2,24 @@ local sources = { 'none' }
 local values = { none = 0 }
 
 local destinations = {}
+local assignments = { none = {} }
 local actions = {}
 local types = {}
 
 local pfix_mod_source = 'mod_source_'
 
 local patcher = { 
-    sources = sources, values = values, destinations = destinations, actions = actions 
+    sources = sources, values = values, destinations = destinations, actions = actions,
+    assignments = assignments,
 }
 
 function patcher.add_source(src_id, default)
     table.insert(sources, src_id)
     values[src_id] = default or 0
+    assignments[src_id] = {}
 end
 
+--TODO: rename 'add_destination_and_param'
 function patcher.add_source_and_param(args)
     params:add(args)
     
@@ -42,14 +46,12 @@ function patcher.set_source(src_id, value, trigger_threshold, ...)
     local last = values[src_id]
     values[src_id] = value
     
-    for _,dest_id in ipairs(destinations) do
-        if sources[params:get(pfix_mod_source..dest_id)] == src_id then 
-            if types[dest_id] == 'decimal' then
-                actions[dest_id](value, ...)
-            elseif types[dest_id] == 'integer' and math.floor(last) ~= math.floor(value) then
-                actions[dest_id](math.floor(value), ...)
-            elseif types[dest_id] == 'trigger' then
-            end
+    for _,dest_id in ipairs(assignments[src_id]) do
+        if types[dest_id] == 'decimal' then
+            actions[dest_id](value, ...)
+        elseif types[dest_id] == 'integer' and math.floor(last) ~= math.floor(value) then
+            actions[dest_id](math.floor(value), ...)
+        elseif types[dest_id] == 'trigger' then
         end
     end
 end
@@ -101,12 +103,23 @@ function patcher.get_destination_plus_param(dest_id, param_id, paramset)
     end
 end
 
+--TODO: rename 'add_assignment_params' (typo)
 function patcher.add_assginment_params(action)
     for _,dest_id in ipairs(destinations) do
         params:add{
             name = dest_id, id = pfix_mod_source..dest_id, 
             type = 'option', options = sources, default = 1,
-            action = action 
+            action = function(v)
+                local src_id = sources[v]
+
+                for i,dests in pairs(assignments) do for ii,dest in ipairs(dests) do
+                    if dest == dest_id then
+                        table.remove(dests, ii)
+                        break
+                    end
+                end end
+                table.insert(assignments[src_id], dest_id)
+            end
         }
     end
 end
