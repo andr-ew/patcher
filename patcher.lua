@@ -138,6 +138,8 @@ function patcher.add_assignment_params(action)
                     end
                 end end
                 table.insert(src_assignments[src_id], dest_id)
+
+                action()
             end
         }
     end
@@ -145,8 +147,12 @@ end
 function patcher.set_assignment(src_id, dest_id)
     params:set(pfix_mod_source..dest_id, tab.key(sources, src_id))
 end
-function patcher.get_assignment(dest_id)
-    return sources[params:get(pfix_mod_source..dest_id)]
+function patcher.get_assignment_destination(dest_id)
+    -- return sources[params:get(pfix_mod_source..dest_id)]
+    return dest_assignments[dest_id]
+end
+function patcher.get_assignments_source(src_id)
+    return src_assignments[src_id]
 end
 
 return patcher
