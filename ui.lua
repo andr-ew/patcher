@@ -48,7 +48,7 @@ function Patcher.enc.destination(_comp, args)
             local n, d = table.unpack(crops.args)
 
             if n == props.n then
-                local patched = patcher.get_assignment(dest_id) == active_src_id
+                local patched = patcher.get_assignment_destination(dest_id) == active_src_id
 
                 local old = (patched and 1 or 0) + remainder
                 local new = old + ((d > 0 and 1 or -1) * 1/2)
@@ -102,7 +102,7 @@ function Patcher.screen.destination(_comp, args)
             active_src_id and (active_src_id ~= 'none') 
             and crops.mode == 'redraw' and crops.device == 'screen' 
         then 
-            local patched = patcher.get_assignment(dest_id) == active_src_id
+            local patched = patcher.get_assignment_destination(dest_id) == active_src_id
 
             local l = patched and levels[2] or levels[1]
             if props.levels then
@@ -123,7 +123,7 @@ function Patcher.grid.destination(_comp, args)
 
     return function(dest_id, active_src_id, props)
         if active_src_id and (active_src_id ~= 'none') and crops.device == 'grid' then 
-            local patched = patcher.get_assignment(dest_id) == active_src_id
+            local patched = patcher.get_assignment_destination(dest_id) == active_src_id
 
             if props.size then
                 if crops.mode == 'input' then
@@ -154,7 +154,7 @@ function Patcher.grid.destination(_comp, args)
                         end
                     end
                 else
-                    props.level = patched and levels[2] or levels[1]
+                    if props.levels then props.levels[1] = patched and levels[1] or 0 end
 
                     _comp(props)
                 end
@@ -174,7 +174,7 @@ function Patcher.arc.destination(_comp, args)
 
     return function(dest_id, active_src_id, props)
         if active_src_id and (active_src_id ~= 'none') and crops.device == 'arc' then 
-            local patched = patcher.get_assignment(dest_id) == active_src_id
+            local patched = patcher.get_assignment_destination(dest_id) == active_src_id
 
             if crops.mode == 'input' then
                 local n, d = table.unpack(crops.args)
