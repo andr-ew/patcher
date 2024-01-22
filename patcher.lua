@@ -10,6 +10,7 @@ local src_assignments = { none = {} }
 local dest_assignments  = {}
 
 local dest_actions = {}
+local dest_getters = {}
 local dest_types = {}
 
 local pfix_mod_source = 'mod_source_'
@@ -18,7 +19,7 @@ local patcher = {
     sources = sources, destinations = destinations, 
     src_values = src_values, dest_values = dest_values,
     src_assignments = src_assignments, dest_assignments = dest_assignments,
-    dest_actions = dest_actions, dest_types = dest_types,
+    dest_actions = dest_actions, dest_getters = dest_getters, dest_types = dest_types,
 }
 
 function patcher.add_source(src_id, default, trigger_threshold)
@@ -60,6 +61,14 @@ function patcher.add_destination(args)
 
             action(util.clamp(src_value + dest_value, spec.minval, spec.maxval))
         end
+        dest_getters[dest_id] = function()
+            local dest_value = dest_values[dest_id]
+
+            local src_id = dest_assignments[dest_id]
+            local src_value = src_values[src_id]
+
+            return util.clamp(src_value + dest_value, spec.minval, spec.maxval)
+        end
 
         return function(dest_value)
             dest_values[dest_id] = dest_value
@@ -76,6 +85,14 @@ function patcher.add_destination(args)
             if math.floor(src_value) ~= math.floor(src_value_last) then
                 action(util.round(util.clamp(src_value + dest_value, min, max)))
             end
+        end
+        dest_getters[dest_id] = function()
+            local dest_value = dest_values[dest_id]
+
+            local src_id = dest_assignments[dest_id]
+            local src_value = src_values[src_id]
+
+            return util.round(util.clamp(src_value + dest_value, min, max))
         end
 
         return function(dest_value)
@@ -94,6 +111,14 @@ function patcher.add_destination(args)
                 action(util.round(util.clamp(src_value + dest_value, 1, option_count)))
             end
         end
+        dest_getters[dest_id] = function()
+            local dest_value = dest_values[dest_id]
+
+            local src_id = dest_assignments[dest_id]
+            local src_value = src_values[src_id]
+
+            return util.round(util.clamp(src_value + dest_value, 1, option_count))
+        end
 
         return function(dest_value)
             dest_values[dest_id] = dest_value
@@ -104,10 +129,31 @@ function patcher.add_destination(args)
             action(util.round(util.clamp(src_value + dest_value, 1, option_count)))
         end
     elseif typ == 'binary' then
-        --TODO
-        
-        if behavior == 'momentary' then
-        elseif behavior == 'toggle' then
+        if behavior == 'momentary' or behavior == 'toggle' then
+            dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
+                local dest_value = dest_values[dest_id]
+
+                if math.floor(src_value) ~= math.floor(src_value_last) then
+                    action(math.floor(util.clamp(src_value + dest_value, 0, 1)))
+                end
+            end
+            dest_getters[dest_id] = function()
+                local dest_value = dest_values[dest_id]
+
+                local src_id = dest_assignments[dest_id]
+                local src_value = src_values[src_id]
+
+                return math.floor(util.clamp(src_value + dest_value, 0, 1))
+            end
+
+            return function(dest_value)
+                dest_values[dest_id] = dest_value
+
+                local src_id = dest_assignments[dest_id]
+                local src_value = src_values[src_id]
+
+                action(math.floor(util.clamp(src_value + dest_value, 0, 1)))
+            end
         elseif behavior == 'trigger' then
         end
     end
@@ -144,6 +190,7 @@ function patcher.add_assignment_params(action)
         }
     end
 end
+
 function patcher.set_assignment(src_id, dest_id)
     params:set(pfix_mod_source..dest_id, tab.key(sources, src_id))
 end
@@ -153,6 +200,9 @@ function patcher.get_assignment_destination(dest_id)
 end
 function patcher.get_assignments_source(src_id)
     return src_assignments[src_id]
+end
+function patcher.get_value(dest_id)
+    return dest_getters[dest_id]()
 end
 
 return patcher
