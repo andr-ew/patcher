@@ -154,7 +154,7 @@ function Patcher.grid.destination(_comp, args)
                         end
                     end
                 else
-                    props.level = patched and levels[2] or levels[1]
+                    if props.levels then props.levels[1] = patched and levels[1] or 0 end
 
                     _comp(props)
                 end
