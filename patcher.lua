@@ -201,6 +201,9 @@ end
 function patcher.get_assignments_source(src_id)
     return src_assignments[src_id]
 end
+function patcher.get_assignment_param_id(dest_id)
+    return pfix_mod_source..dest_id
+end
 function patcher.get_value(dest_id)
     return dest_getters[dest_id]()
 end
