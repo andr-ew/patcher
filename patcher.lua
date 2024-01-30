@@ -207,5 +207,8 @@ end
 function patcher.get_value(dest_id)
     return dest_getters[dest_id]()
 end
+function patcher.get_mod_value(dest_id)
+    return src_values[dest_assignments[dest_id]]
+end
 
 return patcher
