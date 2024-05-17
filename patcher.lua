@@ -3,12 +3,14 @@ local cs = require 'controlspec'
 local sources = { 'none' }
 local destinations = {}
 
+local src_names = { sources[1] }
 local src_values = { none = 0 }
 local dest_values = {}
 
 local src_assignments = { none = {} }
-local dest_assignments  = {}
+local dest_assignments = {}
 
+local dest_names = {}
 local dest_actions = {}
 local dest_getters = {}
 local dest_types = {}
@@ -22,8 +24,9 @@ local patcher = {
     dest_actions = dest_actions, dest_getters = dest_getters, dest_types = dest_types,
 }
 
-function patcher.add_source(src_id, default, trigger_threshold)
+function patcher.add_source(src_id, src_name, default, trigger_threshold)
     table.insert(sources, src_id)
+    table.insert(src_names, src_name or src_id)
     src_values[src_id] = default or 0
     src_assignments[src_id] = {}
 
@@ -43,6 +46,7 @@ function patcher.add_destination(args)
     local typ = args.type
     local behavior = args.behavior
     local dest_id = args.id
+    local dest_name = args.name or dest_id
     local action = args.action
     local spec = args.controlspec or cs.new()
     local default = args.controlspec and args.controlspec.default or args.default or 0
@@ -51,6 +55,7 @@ function patcher.add_destination(args)
     local option_count = #(args.options or {})
 
     table.insert(destinations, dest_id)
+    dest_names[dest_id] = dest_name
     dest_assignments[dest_id] = 'none'
     dest_types[dest_id] = typ
     dest_values[dest_id] = default
@@ -168,8 +173,8 @@ end
 function patcher.add_assignment_params(action)
     for _,dest_id in ipairs(destinations) do
         params:add{
-            name = dest_id, id = pfix_mod_source..dest_id, 
-            type = 'option', options = sources, default = 1,
+            name = dest_names[dest_id], id = pfix_mod_source..dest_id, 
+            type = 'option', options = src_names, default = 1,
             action = function(v)
                 local src_id = sources[v]
 
