@@ -27,7 +27,7 @@ function patcher.add_source(src_id, default, trigger_threshold)
     src_values[src_id] = default or 0
     src_assignments[src_id] = {}
 
-    local thresh = trigger_threshold or 0
+    local thresh = trigger_threshold or 0.1
 
     return function(src_value)
         local last = src_values[src_id] or 0
@@ -133,7 +133,7 @@ function patcher.add_destination(args)
             dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
                 local dest_value = dest_values[dest_id]
 
-                if math.floor(src_value) ~= math.floor(src_value_last) then
+                if (src_value > trigger_threshold) ~= (src_value_last > trigger_threshold) then
                     action(math.floor(util.clamp(src_value + dest_value, 0, 1)))
                 end
             end
