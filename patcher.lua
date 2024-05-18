@@ -3,17 +3,25 @@ local cs = require 'controlspec'
 local sources = { 'none' }
 local destinations = {}
 
-local src_names = { sources[1] }
 local src_values = { none = 0 }
 local dest_values = {}
 
 local src_assignments = { none = {} }
 local dest_assignments = {}
 
+local src_names = { sources[1] }
 local dest_names = {}
-local dest_actions = {}
+
+local src_assignment_callbacks = { none = function() end }
+local src_trigger_thresholds = { none = 0.1 }
+
+local dest_stream_actions = {}
+local dest_change_actions = {}
+--TODO: dest_window_actions
 local dest_getters = {}
 local dest_types = {}
+local dest_modes = {}
+local dest_directions = {}
 
 local pfix_mod_source = 'mod_source_'
 
@@ -21,25 +29,45 @@ local patcher = {
     sources = sources, destinations = destinations, 
     src_values = src_values, dest_values = dest_values,
     src_assignments = src_assignments, dest_assignments = dest_assignments,
-    dest_actions = dest_actions, dest_getters = dest_getters, dest_types = dest_types,
+    dest_stream_actions = dest_stream_actions, dest_getters = dest_getters, dest_types = dest_types,
 }
 
-function patcher.add_source(src_id, src_name, default, trigger_threshold)
+function patcher.set_source_assignment_callback(src_id, assignment_callback)
+    src_assignment_callbacks[src_id] = assignment_callback
+end
+
+function patcher.add_source(args)
+    local src_id = args.src_id
+    local src_name = args.src_name or src_id
+    local default = args.default or 0
+    local trigger_threshold = args.trigger_threshold or 0.1
+    local assignment_callback = args.assignment_callback or function() end
+
     table.insert(sources, src_id)
-    table.insert(src_names, src_name or src_id)
-    src_values[src_id] = default or 0
+    table.insert(src_names, src_name)
+    src_values[src_id] = default
     src_assignments[src_id] = {}
+    src_trigger_thresholds[src_id] = trigger_threshold
 
-    local thresh = trigger_threshold or 0.1
+    patcher.set_source_assignment_callback(src_id, assignment_callback)
 
-    return function(src_value)
+    local src_actions = {}
+
+    function src_actions.stream(src_value)
         local last = src_values[src_id] or 0
         src_values[src_id] = src_value
 
         for _,dest_id in ipairs(src_assignments[src_id]) do
-            dest_actions[dest_id](src_value, last, thresh)
+            dest_stream_actions[dest_id](src_value, last, trigger_threshold)
         end
     end
+    function src_actions.change(src_state)
+        for _,dest_id in ipairs(src_assignments[src_id]) do
+            dest_change_actions[dest_id](src_state)
+        end
+    end
+
+    return src_actions
 end
 
 function patcher.add_destination(args)
@@ -53,15 +81,28 @@ function patcher.add_destination(args)
     local min = args.min
     local max = args.max
     local option_count = #(args.options or {})
+    
+    local mode = 'stream'
+    local direction = 'both'
+
+    if typ == 'binary' then
+        mode = 'change'
+
+        if behavior == 'trigger' then
+            direction = 'rising'
+        end
+    end
 
     table.insert(destinations, dest_id)
     dest_names[dest_id] = dest_name
     dest_assignments[dest_id] = 'none'
     dest_types[dest_id] = typ
     dest_values[dest_id] = default
-        
+    dest_modes[dest_id] = mode
+    dest_directions[dest_id] = direction
+
     if typ == 'control' then
-        dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
+        dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
             action(util.clamp(src_value + dest_value, spec.minval, spec.maxval))
@@ -84,7 +125,7 @@ function patcher.add_destination(args)
             action(util.clamp(src_value + dest_value, spec.minval, spec.maxval))
         end
     elseif typ == 'number' then
-        dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
+        dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
             if math.floor(src_value) ~= math.floor(src_value_last) then
@@ -109,7 +150,7 @@ function patcher.add_destination(args)
             action(util.round(util.clamp(src_value + dest_value, min, max)))
         end
     elseif typ == 'option' then
-        dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
+        dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
             if math.floor(src_value) ~= math.floor(src_value_last) then
@@ -135,12 +176,21 @@ function patcher.add_destination(args)
         end
     elseif typ == 'binary' then
         if behavior == 'momentary' or behavior == 'toggle' then
-            dest_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
-                local dest_value = dest_values[dest_id]
+            dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
+                local src_gate = src_value > trigger_threshold
+                local src_gate_last = src_value_last > trigger_threshold
 
-                if (src_value > trigger_threshold) ~= (src_value_last > trigger_threshold) then
-                    action(math.floor(util.clamp(src_value + dest_value, 0, 1)))
+                if src_gate ~= src_gate_last then
+                    local dest_gate = dest_values[dest_id]
+
+                    action(src_gate | dest_gate)
                 end
+            end
+            dest_change_actions[dest_id] = function(src_state)
+                local dest_gate = dest_values[dest_id]
+                local src_value = src_state and 1 or 0
+
+                action(src_gate | dest_gate)
             end
             dest_getters[dest_id] = function()
                 local dest_value = dest_values[dest_id]
@@ -148,7 +198,10 @@ function patcher.add_destination(args)
                 local src_id = dest_assignments[dest_id]
                 local src_value = src_values[src_id]
 
-                return math.floor(util.clamp(src_value + dest_value, 0, 1))
+                local src_gate = src_value > trigger_threshold
+                local dest_gate = dest_values[dest_id]
+                    
+                return src_gate | dest_gate
             end
 
             return function(dest_value)
@@ -160,6 +213,18 @@ function patcher.add_destination(args)
                 action(math.floor(util.clamp(src_value + dest_value, 0, 1)))
             end
         elseif behavior == 'trigger' then
+            dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
+                if
+                    (src_value > trigger_threshold)
+                    and (src_value_last < trigger_threshold)
+                then 
+                    action() 
+                end
+            end
+            dest_change_actions[dest_id] = action
+            dest_getters[dest_id] = function() end
+
+            return action
         end
     end
 end
@@ -170,7 +235,7 @@ function patcher.add_destination_and_param(args)
     params:add(args)
 end
 
-function patcher.add_assignment_params(action)
+function patcher.add_assignment_params(param_action)
     for _,dest_id in ipairs(destinations) do
         params:add{
             name = dest_names[dest_id], id = pfix_mod_source..dest_id, 
@@ -179,6 +244,7 @@ function patcher.add_assignment_params(action)
                 local src_id = sources[v]
 
                 --update dest_assignments
+                local last_src_id = dest_assignments[dest_id]
                 dest_assignments[dest_id] = src_id
 
                 --update src_assignments
@@ -190,7 +256,25 @@ function patcher.add_assignment_params(action)
                 end end
                 table.insert(src_assignments[src_id], dest_id)
 
-                action()
+                local dest_mode = dest_modes[dest_id]
+                local src_trigger_threshold = src_trigger_thresholds[src_id]
+                local dest_direction = dest_directions[dest_id]
+
+                if src_id == 'none' then
+                    src_assignment_callbacks[last_src_id](
+                        'none',
+                        src_trigger_threshold,
+                        dest_direction
+                    )
+                else
+                    src_assignment_callbacks[src_id](
+                        dest_mode, 
+                        src_trigger_threshold,
+                        dest_direction
+                    )
+                end
+
+                param_action()
             end
         }
     end
