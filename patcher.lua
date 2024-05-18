@@ -13,6 +13,7 @@ local src_names = { sources[1] }
 local dest_names = {}
 
 local src_assignment_callbacks = { none = function() end }
+local src_thresholds = { none = 0.1 }
 
 local dest_stream_actions = {}
 local dest_change_actions = {}
@@ -29,11 +30,8 @@ local patcher = {
     src_values = src_values, dest_values = dest_values,
     src_assignments = src_assignments, dest_assignments = dest_assignments,
     dest_stream_actions = dest_stream_actions, dest_getters = dest_getters, dest_types = dest_types,
+    src_thresholds = src_thresholds,
 }
-
-function patcher.set_source_assignment_callback(src_id, assignment_callback)
-    src_assignment_callbacks[src_id] = assignment_callback
-end
 
 function patcher.add_source(args)
     local src_id = args.id
@@ -46,8 +44,8 @@ function patcher.add_source(args)
     table.insert(src_names, src_name)
     src_values[src_id] = default
     src_assignments[src_id] = {}
-
-    patcher.set_source_assignment_callback(src_id, assignment_callback)
+    src_thresholds[src_id] = trigger_threshold
+    src_assignment_callbacks[src_id] = assignment_callback
 
     local src_actions = {}
 
@@ -85,7 +83,7 @@ function patcher.add_destination(args)
     local mode = 'stream'
     local direction = 'both'
 
-    if typ == 'binary' then
+    if typ == 'binary' or typ == params.tBINARY then
         mode = 'change'
 
         if behavior == 'trigger' then
@@ -101,7 +99,7 @@ function patcher.add_destination(args)
     dest_modes[dest_id] = mode
     dest_directions[dest_id] = direction
 
-    if typ == 'control' then
+    if typ == 'control' or typ == params.tCONTROL then
         dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
@@ -124,7 +122,7 @@ function patcher.add_destination(args)
 
             action(util.clamp(src_value + dest_value, spec.minval, spec.maxval))
         end
-    elseif typ == 'number' then
+    elseif typ == 'number' or typ == params.tNUMBER then
         dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
@@ -149,7 +147,7 @@ function patcher.add_destination(args)
 
             action(util.round(util.clamp(src_value + dest_value, min, max)))
         end
-    elseif typ == 'option' then
+    elseif typ == 'option' or typ == params.tOPTION then
         dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
@@ -174,7 +172,7 @@ function patcher.add_destination(args)
 
             action(util.round(util.clamp(src_value + dest_value, 1, option_count)))
         end
-    elseif typ == 'binary' then
+    elseif typ == 'binary' or typ == params.tBINARY then
         if behavior == 'momentary' or behavior == 'toggle' then
             dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
                 local src_gate = src_value > trigger_threshold and 1 or 0
@@ -197,8 +195,9 @@ function patcher.add_destination(args)
 
                 local src_id = dest_assignments[dest_id]
                 local src_value = src_values[src_id]
+                local src_threshold = src_thresholds[src_id]
 
-                local src_gate = src_value > trigger_threshold
+                local src_gate = src_value > src_threshold and 1 or 0
                 local dest_gate = dest_values[dest_id]
                     
                 return src_gate | dest_gate
