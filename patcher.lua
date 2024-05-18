@@ -36,8 +36,8 @@ function patcher.set_source_assignment_callback(src_id, assignment_callback)
 end
 
 function patcher.add_source(args)
-    local src_id = args.src_id
-    local src_name = args.src_name or src_id
+    local src_id = args.id
+    local src_name = args.name or src_id
     local default = args.default or 0
     local trigger_threshold = args.trigger_threshold or 0.1
     local assignment_callback = args.assignment_callback or function() end
@@ -60,6 +60,8 @@ function patcher.add_source(args)
         end
     end
     function src_actions.change(src_state)
+        src_values[src_id] = src_state and 1 or 0
+
         for _,dest_id in ipairs(src_assignments[src_id]) do
             dest_change_actions[dest_id](src_state)
         end
@@ -175,8 +177,8 @@ function patcher.add_destination(args)
     elseif typ == 'binary' then
         if behavior == 'momentary' or behavior == 'toggle' then
             dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
-                local src_gate = src_value > trigger_threshold
-                local src_gate_last = src_value_last > trigger_threshold
+                local src_gate = src_value > trigger_threshold and 1 or 0
+                local src_gate_last = src_value_last > trigger_threshold and 1 or 0
 
                 if src_gate ~= src_gate_last then
                     local dest_gate = dest_values[dest_id]
@@ -186,7 +188,7 @@ function patcher.add_destination(args)
             end
             dest_change_actions[dest_id] = function(src_state)
                 local dest_gate = dest_values[dest_id]
-                local src_value = src_state and 1 or 0
+                local src_gate = src_state and 1 or 0
 
                 action(src_gate | dest_gate)
             end
