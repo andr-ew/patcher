@@ -13,7 +13,6 @@ local src_names = { sources[1] }
 local dest_names = {}
 
 local src_assignment_callbacks = { none = function() end }
-local src_trigger_thresholds = { none = 0.1 }
 
 local dest_stream_actions = {}
 local dest_change_actions = {}
@@ -47,7 +46,6 @@ function patcher.add_source(args)
     table.insert(src_names, src_name)
     src_values[src_id] = default
     src_assignments[src_id] = {}
-    src_trigger_thresholds[src_id] = trigger_threshold
 
     patcher.set_source_assignment_callback(src_id, assignment_callback)
 
@@ -221,7 +219,9 @@ function patcher.add_destination(args)
                     action() 
                 end
             end
-            dest_change_actions[dest_id] = action
+            dest_change_actions[dest_id] = function(state)
+                if state then action() end
+            end
             dest_getters[dest_id] = function() end
 
             return action
@@ -236,42 +236,46 @@ function patcher.add_destination_and_param(args)
 end
 
 function patcher.add_assignment_params(param_action)
-    for _,dest_id in ipairs(destinations) do
+    for _,this_dest_id in ipairs(destinations) do
         params:add{
-            name = dest_names[dest_id], id = pfix_mod_source..dest_id, 
+            name = dest_names[this_dest_id], id = pfix_mod_source..this_dest_id, 
             type = 'option', options = src_names, default = 1,
             action = function(v)
                 local src_id = sources[v]
 
                 --update dest_assignments
-                local last_src_id = dest_assignments[dest_id]
-                dest_assignments[dest_id] = src_id
+                local last_src_id = dest_assignments[this_dest_id]
+                dest_assignments[this_dest_id] = src_id
 
                 --update src_assignments
                 for i,dests in pairs(src_assignments) do for ii,dest in ipairs(dests) do
-                    if dest == dest_id then
+                    if dest == this_dest_id then
                         table.remove(dests, ii)
                         break
                     end
                 end end
-                table.insert(src_assignments[src_id], dest_id)
-
-                local dest_mode = dest_modes[dest_id]
-                local src_trigger_threshold = src_trigger_thresholds[src_id]
-                local dest_direction = dest_directions[dest_id]
+                table.insert(src_assignments[src_id], this_dest_id)
 
                 if src_id == 'none' then
-                    src_assignment_callbacks[last_src_id](
-                        'none',
-                        src_trigger_threshold,
-                        dest_direction
-                    )
+                    src_assignment_callbacks[last_src_id]('none', '')
                 else
-                    src_assignment_callbacks[src_id](
-                        dest_mode, 
-                        src_trigger_threshold,
-                        dest_direction
-                    )
+                    local assignment_mode = 'change'
+                    local assignment_direction = 'rising'
+            
+                    for _,dest_id in ipairs(src_assignments[src_id]) do
+                        local dest_mode = dest_modes[dest_id]
+                        local dest_direction = dest_directions[dest_id]
+
+                        if dest_mode == 'stream' then
+                            assignment_mode = 'stream'
+                            break
+                        elseif dest_mode == 'change' and dest_direction == 'both' then
+                            assignment_direction = 'both'
+                            break 
+                        end
+                    end
+
+                    src_assignment_callbacks[src_id](assignment_mode, assignment_direction)
                 end
 
                 param_action()
