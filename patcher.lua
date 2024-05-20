@@ -125,7 +125,7 @@ function patcher.add_destination(args)
             local dest_value = dest_values[dest_id]
 
             if math.floor(src_value) ~= math.floor(src_value_last) then
-                action(util.round(util.clamp(src_value + dest_value, min, max)))
+                action(util.clamp(math.floor(src_value + dest_value), min, max))
             end
         end
         dest_getters[dest_id] = function()
@@ -134,7 +134,7 @@ function patcher.add_destination(args)
             local src_id = dest_assignments[dest_id]
             local src_value = src_values[src_id]
 
-            return util.round(util.clamp(src_value + dest_value, min, max))
+            return util.clamp(math.floor(src_value + dest_value), min, max)
         end
 
         return function(dest_value)
@@ -143,14 +143,14 @@ function patcher.add_destination(args)
             local src_id = dest_assignments[dest_id]
             local src_value = src_values[src_id]
 
-            action(util.round(util.clamp(src_value + dest_value, min, max)))
+            action(util.clamp(math.floor(src_value + dest_value), min, max))
         end
     elseif typ == 'option' or typ == params.tOPTION then
         dest_stream_actions[dest_id] = function(src_value, src_value_last, trigger_threshold)
             local dest_value = dest_values[dest_id]
 
             if math.floor(src_value) ~= math.floor(src_value_last) then
-                action(util.round(util.clamp(src_value + dest_value, 1, option_count)))
+                action(util.clamp(math.floor(src_value + dest_value), 1, option_count))
             end
         end
         dest_getters[dest_id] = function()
@@ -159,7 +159,7 @@ function patcher.add_destination(args)
             local src_id = dest_assignments[dest_id]
             local src_value = src_values[src_id]
 
-            return util.round(util.clamp(src_value + dest_value, 1, option_count))
+            return util.clamp(math.floor(src_value + dest_value), 1, option_count)
         end
 
         return function(dest_value)
