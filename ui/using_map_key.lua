@@ -111,7 +111,6 @@ function Patcher.screen.destination(_comp, args)
     end
 end
 
-
 --(rest is TODO)
 
 function Patcher.grid.destination(_comp, args)
