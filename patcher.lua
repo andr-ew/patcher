@@ -28,6 +28,7 @@ local pfix_mod_source = 'mod_source_'
 local patcher = { 
     sources = sources, destinations = destinations, 
     src_values = src_values, dest_values = dest_values,
+    src_names = src_names, dest_names = dest_names,
     src_assignments = src_assignments, dest_assignments = dest_assignments,
     dest_stream_actions = dest_stream_actions, dest_getters = dest_getters, dest_types = dest_types,
     src_thresholds = src_thresholds,
@@ -286,13 +287,15 @@ end
 function patcher.set_assignment(src_id, dest_id)
     params:set(pfix_mod_source..dest_id, tab.key(sources, src_id))
 end
-function patcher.get_assignment_destination(dest_id)
-    -- return sources[params:get(pfix_mod_source..dest_id)]
+function patcher.get_assignment_of_destination(dest_id)
     return dest_assignments[dest_id]
 end
-function patcher.get_assignments_source(src_id)
+function patcher.get_assignments_of_source(src_id)
     return src_assignments[src_id]
 end
+--TODO: remove eventually
+patcher.get_assignment_destination = patcher.get_assignment_of_destination
+patcher.get_assignments_source = patcher.get_assignments_of_source
 function patcher.get_assignment_param_id(dest_id)
     return pfix_mod_source..dest_id
 end
@@ -302,60 +305,68 @@ end
 function patcher.get_mod_value(dest_id)
     return src_values[dest_assignments[dest_id]]
 end
-
-patcher.crow = {}
-
-local needs_re_enable = false
-
--- src: https://github.com/monome/norns/blob/e8ae36069937df037e1893101e73bbdba2d8a3db/lua/core/crow.lua#L14
-local function re_enable_clock_source_crow()
-    if params.lookup["clock_source"] then
-        if params:string("clock_source") == "crow" then
-            norns.crow.clock_enable()
-        end
-    end
+function pather.get_destination_name(dest_id)
+    return dest_names[dest_id]
+end
+function pather.get_source_name(src_id)
+    return src_names[dest_id]
 end
 
-function patcher.crow.add_source(input, time, threshold, hysteresis)
-    time = time or 0.01
-    threshold = threshold or 0.1
-    hysteresis = hysteresis or 0.1
+do
+    patcher.crow = {}
 
-    local function assignment_callback(mode, direction)
-        if mode == 'stream' then
-            crow.input[input].mode('stream', time)
-        elseif mode == 'change' then
-            crow.input[input].mode('change', threshold, hysteresis, direction)
-        elseif mode == 'none' then
-            crow.input[input].mode('none')
-        end
-    
-        if input == 1 then
-            if mode == 'none' and needs_re_enable then
-                re_enable_clock_source_crow()
-                needs_re_enable = false
-            else needs_re_enable = true end
+    local needs_re_enable = false
+
+    -- src: https://github.com/monome/norns/blob/e8ae36069937df037e1893101e73bbdba2d8a3db/lua/core/crow.lua#L14
+    local function re_enable_clock_source_crow()
+        if params.lookup["clock_source"] then
+            if params:string("clock_source") == "crow" then
+                norns.crow.clock_enable()
+            end
         end
     end
-    
-    local stream, change = patcher.add_source{ 
-        name = 'crow '..input, 
-        id = 'crow_'..input, 
-        default = 0, 
-        trigger_threshold = threshold, 
-        assignment_callback = assignment_callback
-    }
 
-    local function add_action()
-        crow.input[input].stream = stream
-        crow.input[input].change = change
+    function patcher.crow.add_source(input, time, threshold, hysteresis)
+        time = time or 0.01
+        threshold = threshold or 0.1
+        hysteresis = hysteresis or 0.1
+
+        local function assignment_callback(mode, direction)
+            if mode == 'stream' then
+                crow.input[input].mode('stream', time)
+            elseif mode == 'change' then
+                crow.input[input].mode('change', threshold, hysteresis, direction)
+            elseif mode == 'none' then
+                crow.input[input].mode('none')
+            end
+        
+            if input == 1 then
+                if mode == 'none' and needs_re_enable then
+                    re_enable_clock_source_crow()
+                    needs_re_enable = false
+                else needs_re_enable = true end
+            end
+        end
+        
+        local stream, change = patcher.add_source{ 
+            name = 'crow '..input, 
+            id = 'crow_'..input, 
+            default = 0, 
+            trigger_threshold = threshold, 
+            assignment_callback = assignment_callback
+        }
+
+        local function add_action()
+            crow.input[input].stream = stream
+            crow.input[input].change = change
+        end
+
+        return add_action
     end
 
-    return add_action
-end
-
---TODO
-function patcher.crow.add_destination(input)
+    --TODO
+    function patcher.crow.add_destination(input)
+    end
 end
 
 return patcher
