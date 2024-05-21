@@ -293,24 +293,26 @@ end
 function patcher.get_assignments_of_source(src_id)
     return src_assignments[src_id]
 end
---TODO: remove eventually
-patcher.get_assignment_destination = patcher.get_assignment_of_destination
-patcher.get_assignments_source = patcher.get_assignments_of_source
 function patcher.get_assignment_param_id(dest_id)
     return pfix_mod_source..dest_id
 end
-function patcher.get_value(dest_id)
+function patcher.get_value_by_destination(dest_id)
     return dest_getters[dest_id]()
 end
-function patcher.get_mod_value(dest_id)
+function patcher.get_source_value_by_destination(dest_id)
     return src_values[dest_assignments[dest_id]]
 end
-function pather.get_destination_name(dest_id)
+function patcher.get_destination_name(dest_id)
     return dest_names[dest_id]
 end
-function pather.get_source_name(src_id)
-    return src_names[dest_id]
+function patcher.get_source_name(src_id)
+    return src_names[tab.key(sources, src_id)]
 end
+--TODO: remove eventually
+patcher.get_assignment_destination = patcher.get_assignment_of_destination
+patcher.get_assignments_source = patcher.get_assignments_of_source
+patcher.get_value = patcher.get_value_by_destination
+patcher.get_mod_value = patcher.get_source_value_by_destination
 
 do
     patcher.crow = {}
