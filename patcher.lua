@@ -287,6 +287,14 @@ end
 function patcher.set_assignment(src_id, dest_id)
     params:set(pfix_mod_source..dest_id, tab.key(sources, src_id))
 end
+function patcher.delta_assignment(dest_id, d, wrap)
+    local id = pfix_mod_source..dest_id
+    local new = params:get(id) + d
+    if wrap then 
+        new = util.wrap(new, 1, #params:lookup_param(id).options) 
+    end
+    params:set(id, new)
+end
 function patcher.get_assignment_of_destination(dest_id)
     return dest_assignments[dest_id]
 end
