@@ -1,19 +1,19 @@
 local cs = require 'controlspec'
 
-local sources = { 'none' }
+local sources = {}
 local destinations = {}
 
-local src_values = { none = 0 }
+local src_values = {}
 local dest_values = {}
 
-local src_assignments = { none = {} }
+local src_assignments = {}
 local dest_assignments = {}
 
-local src_names = { sources[1] }
+local src_names = {}
 local dest_names = {}
 
-local src_assignment_callbacks = { none = function() end }
-local src_thresholds = { none = 0.1 }
+local src_assignment_callbacks = {}
+local src_thresholds = {}
 
 local dest_stream_actions = {}
 local dest_change_actions = {}
@@ -24,6 +24,8 @@ local dest_modes = {}
 local dest_directions = {}
 
 local pfix_mod_source = 'mod_source_'
+
+local do_nothing
 
 local patcher = { 
     sources = sources, destinations = destinations, 
@@ -65,6 +67,18 @@ function patcher.add_source(args)
     end
 
     return stream, change
+end
+        
+
+do
+    local stream = patcher.add_source{ 
+        name = 'none', 
+        id = 'none', 
+        default = 0, 
+        trigger_threshold = 0, 
+    }
+
+    do_nothing = function() stream(0) end
 end
 
 function patcher.add_destination(args)
@@ -258,6 +272,8 @@ function patcher.add_assignment_params(param_action)
 
                 if src_id == 'none' then
                     src_assignment_callbacks[last_src_id]('none', '')
+
+                    do_nothing()
                 else
                     local assignment_mode = 'change'
                     local assignment_direction = 'rising'
