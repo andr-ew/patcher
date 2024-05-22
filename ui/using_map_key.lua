@@ -142,7 +142,7 @@ end
 function Patcher.grid.destination(_comp, args)
     local args = args or {}
     local patcher = args.patcher or patcher
-    local levels = args.levels or { 4, 8 }
+    local levels = args.levels or { { 4, 8 }, { 4, 8 } }
 
     return function(dest_id, mode_map, props)
         if mode_map and crops.device == 'grid' then 
@@ -165,8 +165,8 @@ function Patcher.grid.destination(_comp, args)
                 else
                     props.levels = props.levels or { 0, 15 }
                     local bl = get_blink(params:get(patcher.get_assignment_param_id(dest_id)))
-                    if not props.size then props.levels[1] = levels[bl + 1] end
-                    props.levels[2] = levels[bl + 1]
+                    props.levels[1] = levels[1] and levels[1][bl + 1] or props.levels[1]
+                    props.levels[2] = levels[2] and levels[2][bl + 1] or props.levels[2]
 
                     _comp(props)
                 end
@@ -177,6 +177,7 @@ function Patcher.grid.destination(_comp, args)
     end
 end
 
+--TODO
 function Patcher.arc.destination(_comp, args)
     local args = args or {}
     local patcher = args.patcher or patcher
@@ -192,15 +193,11 @@ function Patcher.arc.destination(_comp, args)
                 local n, d = table.unpack(crops.args)
 
                 if n == props.n then
-                    local old = (patched and 1 or 0) + remainder
+                    local old = 0 + remainder
                     local new = old + (d * (args.sensitivity or 1/4))
                     local int, frac = math.modf(new)
 
-                    if int >= 1 then
-                        patcher.set_assignment(mode_map, dest_id)
-                    else
-                        patcher.set_assignment('none', dest_id)
-                    end
+                    
 
                     remainder = frac
                 end
@@ -208,7 +205,7 @@ function Patcher.arc.destination(_comp, args)
                 do
                     local a = crops.handler
 
-                    if patched then for x = 1,64 do
+                    if false then for x = 1,64 do
                         a:led(props.n, x, levels[2])
                     end end
                 end
