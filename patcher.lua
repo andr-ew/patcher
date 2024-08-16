@@ -9,6 +9,8 @@ local dest_values = {}
 local src_assignments = {}
 local dest_assignments = {}
 
+local last_assignment = { src = nil, dest = nil }
+
 local src_names = {}
 local dest_names = {}
 
@@ -32,6 +34,7 @@ local patcher = {
     src_values = src_values, dest_values = dest_values,
     src_names = src_names, dest_names = dest_names,
     src_assignments = src_assignments, dest_assignments = dest_assignments,
+    last_assignment = last_assignment,
     dest_stream_actions = dest_stream_actions, dest_getters = dest_getters, dest_types = dest_types,
     src_thresholds = src_thresholds,
 }
@@ -269,6 +272,9 @@ function patcher.add_assignment_params(param_action)
                     end
                 end end
                 table.insert(src_assignments[src_id], this_dest_id)
+
+                last_assignment.src = src_id
+                last_assignment.dest = this_dest_id
 
                 if src_id == 'none' then
                     src_assignment_callbacks[last_src_id]('none', '')

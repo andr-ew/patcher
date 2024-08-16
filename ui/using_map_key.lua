@@ -111,6 +111,46 @@ function Patcher.screen.destination(_comp, args)
     end
 end
 
+function Patcher.screen.last_connection(args)
+    local args = args or {}
+    local patcher = args.patcher or patcher
+
+    return function(props)
+        local last_dest, last_src = patcher.last_assignment.dest, patcher.last_assignment.src
+
+        if crops.mode == 'redraw' and crops.device == 'screen' and last_dest and last_src then
+            local levels = props.levels or { 10, 15 }
+
+            
+            local size = props.font_size or 8
+            screen.font_face(props.font_face or 1)
+            screen.font_size(size)
+            screen.move(props.x_left, props.y)
+            screen.level(levels[1])
+            screen.text(patcher.get_destination_name(last_dest))
+            
+            local width = 6 + 4
+            local mar = props.margin or 6
+            screen.move(props.x_right + mar + width, props.y)
+            screen.level(levels[2])
+            screen.text(patcher.get_source_name(last_src))
+
+            -- screen.font_face(49)
+            -- screen.font_face(1)
+            -- screen.font_size(size + 3)
+            
+            screen.level(levels[2])
+            screen.move(props.x_right, props.y) -- + 2)
+            screen.text("←") -- utf8.char(8592)
+
+            screen.move(props.x_right + width, props.y - 2)
+            screen.line_width(1)
+            screen.line_rel(-width, 0)
+            screen.stroke()
+        end
+    end
+end
+
 --(rest is TODO)
 
 local t_on = 0.2
