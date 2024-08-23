@@ -381,8 +381,8 @@ do
         end
         
         local stream, change = patcher.add_source{ 
-            name = 'crow '..input, 
-            id = 'crow_'..input, 
+            name = 'crow in '..input, 
+            id = 'crow_in_'..input, 
             default = 0, 
             trigger_threshold = threshold, 
             assignment_callback = assignment_callback
