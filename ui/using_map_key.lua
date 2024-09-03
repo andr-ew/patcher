@@ -12,11 +12,11 @@ function Patcher.enc_screen.destination(_comp, args)
     local _enc = Patcher.enc.destination(_comp, args)
     local _screen = Patcher.screen.destination(_comp, args)
 
-    return function(dest_id, mode_map, props)
+    return function(dest_id, mode_map, props, label)
         if crops.mode == 'input' then
             _enc(dest_id, mode_map, props)
         else
-            _screen(dest_id, mode_map, props)
+            _screen(dest_id, mode_map, props, label)
         end
     end
 end
@@ -25,11 +25,11 @@ function Patcher.key_screen.destination(_comp, args)
     local _key = Patcher.key.destination(_comp, args)
     local _screen = Patcher.screen.destination(_comp, args)
 
-    return function(dest_id, mode_map, props)
+    return function(dest_id, mode_map, props, label)
         if crops.mode == 'input' then
             _key(dest_id, mode_map, props)
         else
-            _screen(dest_id, mode_map, props)
+            _screen(dest_id, mode_map, props, label)
         end
     end
 end
@@ -85,9 +85,9 @@ function Patcher.screen.destination(_comp, args)
     
     local _source = Screen.list()
 
-    return function(dest_id, mode_map, props)
+    return function(dest_id, mode_map, props, label)
         if mode_map and crops.mode == 'redraw' and crops.device == 'screen' then 
-            local name = patcher.get_destination_name(dest_id)
+            local name = label or patcher.get_destination_name(dest_id)
             if name then
                 _source{
                     x = props.x, 
